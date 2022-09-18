@@ -47,25 +47,27 @@ class Env
      *
      * @param array|string $filePaths Accepts multiple ENV file paths
      * @param boolean $override
-     * @param mixed $mode
+     * @param null|mixed $mode
      * @return void
      */
     public static function loadEnvFile($filePaths, $override = false, $mode = null)
     {
-        self::setMode(is_null($mode) ? self::MODE_ENV : $mode);
-        
+        self::setMode($mode);
+
         $filePaths = ! is_array($filePaths) ? [$filePaths] : $filePaths;
+        $variables = self::dataHelper();
         $default = microtime(1);
         static $parsed = [];
 
         foreach ($filePaths as $filePath) {
+            // Remove any comments
             $content = preg_replace('/#.+/m', '', file_get_contents($filePath));
 
             if (preg_match_all('/(^\S|[^=]|.+)=([^=]|.*)$/m', $content, $matches, PREG_SET_ORDER)) {
                 foreach ($matches as $match) {
                     list(, $key, $value) = $match;
 
-                    if (! $override && $default !== self::getEnv($key, $default)) {
+                    if (! $override && $default !== self::getEnv($key, $default) && isset($variables[$key])) {
                         // Skip if we already have value and cant override.
                         continue;
                     }
@@ -106,7 +108,7 @@ class Env
      *
      * @param null|string $key
      * @param null|mixed $value
-     * @param null|int $mode
+     * @param null|string $mode
      * @return array|false|mixed|string|void
      */
     protected static function dataHelper($key = null, $value = null, $mode = null)
@@ -146,7 +148,7 @@ class Env
      */
     protected static function assertEnvListAvailable()
     {
-        if (empty(self::readAll())) {
+        if (empty(self::getVars())) {
             $variablesOrder = ini_get('variables_order');
             if (strpos($variablesOrder, 'E') === false) {
                 throw new Exception(
@@ -165,9 +167,9 @@ class Env
      * @param int $mode
      * @return mixed
      */
-    public static function readAll($mode = null)
+    public static function getVars($mode = null)
     {
-        return self::dataHelper(null, null,$mode ?: self::$mode);
+        return self::dataHelper(null, null, $mode);
     }
 
     /**
@@ -233,7 +235,9 @@ class Env
      */
     public static function setEnv($varName, $value, $override = false)
     {
-        if (! $override && null !== self::getEnv($varName)) {
+        $default = microtime(1);
+
+        if (! $override && $default !== self::getEnv($varName, $default)) {
             return;
         }
 
@@ -331,8 +335,8 @@ class Env
         }
         
         $results = [];
-        
-        foreach (array_keys($_ENV) as $name) {
+
+        foreach (array_keys(self::getVars()) as $name) {
             if (self::startsWith($name, $prefix)) {
                 $nameAfterPrefix = substr($name, strlen($prefix));
                 $results[$nameAfterPrefix] = self::getEnv($name);

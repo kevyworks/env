@@ -2,7 +2,6 @@
 
 require_once 'Env.php';
 
-Env::setMode(Env::MODE_ENV);
 Env::loadEnvFile(__DIR__ . '/.env_local');
 
 echo <<<STYLESHEET
@@ -31,6 +30,7 @@ STYLESHEET;
 echo '<pre>';
 
 $dd = [
+    ['Env::getVars'],
     ['Env::getArray', 'TEST_', [], true],
     ['Env::get', 'TEST_JSON'],
     ['Env::get', 'TEST_JSON_ARRAY'],

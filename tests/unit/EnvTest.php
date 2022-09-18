@@ -1,20 +1,31 @@
 <?php
 
+# curl -LO https://phar.phpunit.de/phpunit-5.7.phar &&
+# mv -f phpunit-5.7.phar /usr/local/bin/phpunit &&
+# chmod +x /usr/local/bin/phpunit
+require_once __DIR__ . '/../../Env.php';
+
+Env::loadEnvFile(__DIR__ . '/.env_test');
+
 class EnvTest extends \PHPUnit\Framework\TestCase
 {
-    protected function setUp()
+    public function test_should_not_override()
     {
-        # curl -LO https://phar.phpunit.de/phpunit-5.7.phar &&
-        # mv -f phpunit-5.7.phar /usr/local/bin/phpunit &&
-        # chmod +x /usr/local/bin/phpunit
-        require_once __DIR__ . '/../../Env.php';
+        Env::setEnv('MAIL_PORT', 5001);
 
-        Env::loadEnvFile(__DIR__ . '/.env_test', false, Env::MODE_ENV);
+        $this->assertEquals(2525, Env::get('MAIL_PORT'));
+    }
+
+    public function test_should_override()
+    {
+        Env::setEnv('MAIL_PORT', 5001, true);
+
+        $this->assertEquals(5001, Env::get('MAIL_PORT'));
     }
 
     public function test_env()
     {
-        $this->assertEquals($_ENV, Env::readAll());
+        $this->assertEquals($_ENV, Env::getVars());
     }
 
     public function test_env_contains()
